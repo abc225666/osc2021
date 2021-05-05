@@ -22,6 +22,7 @@ struct cpio_newc_header {
 
 unsigned long parse_hex_str(char* s, unsigned int max_len);
 unsigned long align_up(unsigned long n, unsigned long align);
+unsigned long align_down(unsigned long n, unsigned long align);
 int parse_cpio_header(struct cpio_newc_header *header, char **filename,
         unsigned long* filesize, void **data, struct cpio_newc_header **next);
 

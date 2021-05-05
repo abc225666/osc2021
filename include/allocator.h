@@ -3,6 +3,9 @@
 
 #define PAGE_SIZE 0x1000
 #define MAX_BUDDY_ORDER 9 // 2^0 ~ 2^8
+#define MAX_POOL_PAGES 16
+#define POOL_UNIT 16
+#define POOL_SIZE 128 // 16 * 1 - 16 * 128(2048)
 
 enum page_status {
     AVAIL,
@@ -25,6 +28,14 @@ struct page_t {
     enum page_status status;
 };
 
+struct pool_t {
+    int obj_size;
+    int obj_per_page;
+    int obj_used;
+    int page_used;
+    void *page_addr[MAX_POOL_PAGES];
+    struct list_head free_list;
+};
 
 void mm_init();
 void *kmalloc(unsigned long size);
@@ -36,9 +47,13 @@ void *buddy_alloc(int order);
 void buddy_free(void *mem_addr);
 void buddy_remove(struct buddy_head *buddy, struct list_head *element);
 struct page_t *buddy_pop(struct buddy_head *buddy, int order);
-struct page_t *find_buddy(unsigned long offset, int order);
+unsigned long find_buddy(unsigned long offset, int order);
+
+void *pool_alloc(unsigned long size);
+void pool_free(unsigned int idx, void *addr);
 
 void page_init();
+void pool_init();
 void mm_init();
 
 #endif

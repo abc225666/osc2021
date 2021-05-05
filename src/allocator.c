@@ -9,6 +9,7 @@ extern unsigned char __end;
 
 
 struct buddy_head buddy_order[MAX_BUDDY_ORDER];
+struct pool_t obj_pool[POOL_SIZE];
 struct page_t *page;
 
 void buddy_init() {
@@ -32,8 +33,6 @@ struct page_t *buddy_pop(struct buddy_head *buddy, int order) {
     buddy->nr_free--;
     // get target
     struct list_head *target = buddy->head.next;
-
-    uart_printf("pop head: %x\n", target);
 
     // remove from list;
     target->next->prev = target->prev;
@@ -84,24 +83,26 @@ void buddy_free(void *mem_addr) {
     unsigned long page_idx = (unsigned long)mem_addr / PAGE_SIZE;
     struct page_t *p = &page[page_idx];
     int order = p->order;
-    struct page_t *buddy_p = find_buddy(page_idx, order);
+    unsigned long buddy_idx = find_buddy(page_idx, order);
+    struct page_t *buddy_p = &page[buddy_idx];
 
 
     // merge buddy
     while(buddy_p->status == AVAIL && buddy_p->order == order) {
         buddy_remove(&buddy_order[order], &(buddy_p->list));
+        uart_printf("merge buddy order %d to %d\n", order, order+1);
 
         order++;
-        if(p<buddy_p) {
-            page_idx = (unsigned long)p / PAGE_SIZE;
+        if(page_idx < buddy_idx) {
             buddy_p->order = -1;
         }
         else {
-            page_idx = (unsigned long)buddy_p / PAGE_SIZE;
             p->order = -1;
             p = buddy_p;
+            page_idx = buddy_idx;
         }
-        buddy_p = find_buddy(page_idx, order);
+        buddy_idx = find_buddy(page_idx, order);
+        buddy_p = &page[buddy_idx];
     }
 
     for(int i=0;i<(1<<order);i++) {
@@ -111,9 +112,51 @@ void buddy_free(void *mem_addr) {
     }
 }
 
-struct page_t *find_buddy(unsigned long offset, int order) {
+unsigned long find_buddy(unsigned long offset, int order) {
     unsigned long buddy_offset = offset ^ (1<<order);
-    return &page[buddy_offset];
+    return buddy_offset;
+}
+
+void pool_init() {
+    for(int i=0;i<POOL_SIZE;i++) {
+        obj_pool[i].obj_size = POOL_UNIT * (i+1);
+        obj_pool[i].obj_per_page = PAGE_SIZE / obj_pool[i].obj_size;
+        obj_pool[i].obj_used = 0;
+        obj_pool[i].page_used = 0;
+        obj_pool[i].free_list.next = &obj_pool[i].free_list;
+        obj_pool[i].free_list.prev= &obj_pool[i].free_list;
+    }
+}
+
+void *pool_alloc(unsigned long size) {
+    if(size==0) return NULL;
+
+    unsigned long align_size = align_up(size, POOL_UNIT);
+    unsigned int pool_idx = align_size / POOL_UNIT - 1;
+
+    struct pool_t *pool = &obj_pool[pool_idx];
+    uart_printf("alloc from pool size: %d\n", (pool_idx + 1) * POOL_UNIT);
+    // take from pool free list
+    if(pool->free_list.next != &pool->free_list) {
+        uart_printf("used free block\n");
+        struct list_head *element = (struct list_head *)pool->free_list.next;
+        element->prev->next = element->next;
+        element->next->prev = element->prev;
+        element->next = NULL;
+        element->prev = NULL;
+        return (void *)element;
+    }
+    // out of page, alloc new page
+    if(pool->obj_used >= pool->page_used * pool->obj_per_page) {
+        uart_printf("request from buddy system\n");
+        pool->page_addr[pool->page_used] = buddy_alloc(0);
+        pool->page_used++;
+    }
+    // alloc new obj
+    void *addr = pool->page_addr[pool->page_used-1] +
+            (pool->obj_used % pool->obj_per_page) * pool->obj_size;
+    pool->obj_used++;
+    return addr;
 }
 
 void page_init() {
@@ -164,24 +207,57 @@ void page_init() {
     }
 }
 
+void pool_free(unsigned int idx, void *addr) {
+    struct pool_t *pool = &obj_pool[idx];
+
+    struct list_head *free_addr = (struct list_head *)addr;
+    free_addr->prev = pool->free_list.prev;
+    free_addr->next = &pool->free_list;
+
+    pool->free_list.prev->next = free_addr;
+    pool->free_list.prev = free_addr;
+
+    pool->obj_used--;
+}
+
 void mm_init() {
     buddy_init();
     page_init();
+    pool_init();
 }
 
 void *kmalloc(unsigned long size) {
-    // find order
-    int order;
-    for(int i=0;i<MAX_BUDDY_ORDER;i++) {
-        if(size <= (unsigned long)(1<<i)*PAGE_SIZE) {
-            order = i;
-            break;
+    if(size > POOL_UNIT*POOL_SIZE) {
+        // find order
+        int order;
+        for(int i=0;i<MAX_BUDDY_ORDER;i++) {
+            if(size <= (unsigned long)(1<<i)*PAGE_SIZE) {
+                order = i;
+                break;
+            }
         }
+        return buddy_alloc(order);
     }
-    return buddy_alloc(order);
+    else {
+        uart_printf("malloc from pool\n");
+        return pool_alloc(size);
+    }
 }
 
 void kfree(void *ptr) {
+    // try free from pool
+    for(int i=0;i<POOL_SIZE;i++) {
+        for(int j=0;j<obj_pool[i].page_used;i++) {
+            unsigned long page_base = (unsigned long)obj_pool[i].page_addr[j];
+            unsigned long align_addr = align_down((unsigned long)ptr, PAGE_SIZE);
+            if(page_base == align_addr) {
+                uart_printf("free from pool: 0x%x\n", ptr);
+                pool_free(i, ptr);
+                return;
+            }
+        }
+    }
+    uart_printf("free from buddy system\n");
     buddy_free(ptr);
 }
 

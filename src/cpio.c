@@ -27,6 +27,10 @@ unsigned long align_up(unsigned long n, unsigned long align) {
     return (n+align-1) & (~(align-1));
 }
 
+unsigned long align_down(unsigned long n, unsigned long align) {
+    return n & (~(align-1));
+}
+
 int parse_cpio_header(struct cpio_newc_header *header, char **filename,
         unsigned long *filesize, void **data, struct cpio_newc_header **next) {
     *filesize = parse_hex_str(header->c_filesize, sizeof(header->c_filesize));
