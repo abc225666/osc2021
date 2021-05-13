@@ -6,12 +6,13 @@
 
 #define CMDSIZE 128
 
-void main() {
+void kernel_main() {
     char cmd[CMDSIZE] = { 0 };
     int cmd_idx=0;
     mbox_arm_memory();
     uart_init();
     mm_init();
+    asm("svc 0");
     uart_putstr("\r\n");
     uart_putstr("# ");
     while(1) {

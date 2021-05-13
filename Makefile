@@ -7,9 +7,9 @@ SRC_DIR = src
 DST_DIR = img
 
 LINKER_FILE = $(SRC_DIR)/linker.ld
-ENTRY = $(SRC_DIR)/boot.S
-ENTRY_OBJ = $(SRC_DIR)/boot.o
 
+SRCS_ASM=$(wildcard $(SRC_DIR)/*.S)
+OBJS_ASM=$(SRCS_ASM:.S=.o)
 SRCS=$(wildcard $(SRC_DIR)/*.c)
 OBJS=$(SRCS:.c=.o)
 
@@ -19,13 +19,13 @@ CFLAGS = -I include/ -Wall -fno-builtin-memset
 
 all: dir $(DST_DIR)/kernel8.img
 
-$(ENTRY_OBJ): $(ENTRY)
+$(SRC_DIR)/%.o: $(SRC_DIR)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(DST_DIR)/kernel8.img: $(ENTRY_OBJ) $(OBJS)
+$(DST_DIR)/kernel8.img: $(ENTRY_OBJ) $(OBJS) $(OBJS_ASM)
 	$(LD) -T $(LINKER_FILE) -o $(DST_DIR)/kernel8.elf $^
 	$(OBJCOPY) -O binary $(DST_DIR)/kernel8.elf $(DST_DIR)/kernel8.img
 
