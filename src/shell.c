@@ -3,6 +3,11 @@
 #include "mystring.h"
 #include "uart.h"
 #include "utils.h"
+#include "sysregs.h"
+#include "timer.h"
+#include "cpio.h"
+
+extern void el0_start();
 
 void shell_cmd(char* cmd) {
     if(!strcmp(cmd, "help")) {
@@ -51,6 +56,14 @@ void shell_cmd(char* cmd) {
         buf[idx] = '\0';
         void *addr = (void *)atoi(buf);
         kfree(addr); 
+    }
+    else if(!strncmp(cmd, "loaduser", 8)) {
+        core_timer_enable();
+        void *addr = load_program();
+        void (*func)(void) = addr;
+        uart_printf("prog_addr, %x\n", addr);
+        el0_start(addr);
+        func();
     }
     else if(!strcmp(cmd, "")) {
     }

@@ -1,6 +1,8 @@
 #include "cpio.h"
 #include "mystring.h"
 #include "uart.h"
+#include "allocator.h"
+#include "typedef.h"
 
 
 unsigned long parse_hex_str(char* s, unsigned int max_len) {
@@ -81,4 +83,34 @@ void print_cpio() {
 
         header = next;
     }
+}
+
+void* load_program() {
+    void *cpio_base = (void *)0x8000000;
+    char* filename;
+    void* data;
+    unsigned long filesize;
+    struct cpio_newc_header *header, *next;
+
+    void* prog_addr=NULL;
+
+    int error = 0;
+
+    header = cpio_base;
+    while(1) {
+        error = parse_cpio_header(header, &filename, &filesize, &data, &next);
+
+        // error or trailer!!!
+        if(error) break;
+
+        // print data
+        if(!strncmp(filename, "prog.img", 7)) {
+            prog_addr = kmalloc(filesize);
+            memcpy(prog_addr, data, filesize);
+            return prog_addr;
+        }
+        header = next;
+    }
+    return NULL;
+    
 }

@@ -43,6 +43,9 @@
 .macro handle_invalid_entry type
   save_all
   mov x0, #\type
+  mrs x1, esr_el1
+  mrs x2, elr_el1
+  bl show_exception_status
 .endm
 
 .macro ventry label
@@ -60,7 +63,7 @@ exception_handler:
   ventry fiq_invalid_el1t
   ventry error_invalid_el1t
 
-  ventry sync_exc_handler
+  ventry sync_invalid_el1h
   ventry irq_exc_handler
   ventry fiq_invalid_el1h
   ventry error_invalid_el1h
@@ -89,6 +92,9 @@ error_invalid_el1t:
 
 sync_invalid_el1h:
   handle_invalid_entry  SYNC_INVALID_EL1h
+
+irq_invalid_el1h:
+  handle_invalid_entry  IRQ_INVALID_EL1h
 
 fiq_invalid_el1h:
   handle_invalid_entry  FIQ_INVALID_EL1h
@@ -130,5 +136,6 @@ sync_exc_handler:
 
 irq_exc_handler:
   save_all
+  bl irq_exc_runner
   load_all
   eret

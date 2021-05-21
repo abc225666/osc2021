@@ -3,8 +3,11 @@
 #include "mystring.h"
 #include "shell.h"
 #include "mbox.h"
+#include "timer.h"
 
 #define CMDSIZE 128
+
+extern void el0_start();
 
 void kernel_main() {
     char cmd[CMDSIZE] = { 0 };
@@ -12,7 +15,9 @@ void kernel_main() {
     mbox_arm_memory();
     uart_init();
     mm_init();
-    asm("svc 0");
+    //core_timer_enable();
+    //el0_start();
+    //asm volatile("svc 0");
     uart_putstr("\r\n");
     uart_putstr("# ");
     while(1) {

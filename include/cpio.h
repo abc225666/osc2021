@@ -27,5 +27,6 @@ int parse_cpio_header(struct cpio_newc_header *header, char **filename,
         unsigned long* filesize, void **data, struct cpio_newc_header **next);
 
 void print_cpio();
+void *load_program();
 
 #endif

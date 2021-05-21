@@ -31,7 +31,6 @@ loopbsszero:
   msr hcr_el2, x1
 
   bl el1_start
-  bl el0_start
   
 init:
   ldr x0, =__relocate_address
@@ -53,15 +52,14 @@ el1_start:
   adr x1, exception_handler
   msr vbar_el1, x1
 
-
   eret
 
+.global el0_start
 el0_start:
   ldr x1, =SPSR_EL1_VALUE
   msr spsr_el1, x1
-  msr elr_el1, lr
+  msr elr_el1, x0
 
   ldr x1, =0x40000
-  mov sp, x1
-
+  msr sp_el0, x1
   eret
