@@ -4,6 +4,7 @@
 #include "shell.h"
 #include "mbox.h"
 #include "timer.h"
+#include "irq.h"
 
 #define CMDSIZE 128
 
@@ -15,25 +16,27 @@ void kernel_main() {
     mbox_arm_memory();
     uart_init();
     mm_init();
+    uart_buffer_init();
+    irq_init();
     //core_timer_enable();
     //el0_start();
     //asm volatile("svc 0");
-    uart_putstr("\r\n");
-    uart_putstr("# ");
+    async_putstr("\r\n");
+    async_putstr("# ");
     while(1) {
-        char c = uart_getchar();
+        char c = async_getchar();
         switch(c) {
             case '\n':
                 cmd[cmd_idx] = 0;
-                uart_putstr("\n");
+                async_putstr("\n");
                 shell_cmd(cmd);
-                uart_putstr("# ");
+                async_putstr("# ");
                 memset(cmd, 0, CMDSIZE);
                 cmd_idx = 0;
                 break;
             case 127:
                 if(cmd_idx) {
-                    uart_putstr("\b \b");
+                    async_putstr("\b \b");
                     cmd_idx--;
                 }
                 break;
@@ -41,7 +44,7 @@ void kernel_main() {
                 if(c>31 && c<127) {
                     cmd[cmd_idx] = c;
                     cmd_idx++;
-                    uart_putchar(c);
+                    async_putchar(c);
                 }
                 break;
         }

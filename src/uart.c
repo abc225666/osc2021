@@ -1,7 +1,9 @@
 #include "auxiliary.h"
+#include "allocator.h"
 #include "mystring.h"
 #include "gpio.h"
 #include "uart.h"
+#include "queue.h"
 
 void uart_init() {
     // auxiliary setting
@@ -37,6 +39,13 @@ void uart_init() {
 
     // enable Rx Tx
     *AUX_MU_CNTL_REG = 3;
+
+    // init buffer
+}
+
+void uart_buffer_init() {
+    uart_buffer_read = queue_init(10240);
+    uart_buffer_write = queue_init(10240);
 }
 
 void uart_putchar(unsigned int c) {
@@ -75,6 +84,17 @@ void uart_putstr(char* str) {
     }
 }
 
+void async_putstr(char *str) {
+    while(*str) {
+        // \r\n
+        if(*str=='\n') {
+            async_putchar('\r');
+        }
+        async_putchar(*str);
+        str++;
+    }
+}
+
 void uart_printf(char *fmt, ...) {
     __builtin_va_list args;
     __builtin_va_start(args, fmt);
@@ -83,4 +103,29 @@ void uart_printf(char *fmt, ...) {
     char *s = (char *)&__end;
     vsprintf(s, fmt, args);
     uart_putstr(s);
+}
+
+void async_printf(char *fmt, ...) {
+    __builtin_va_list args;
+    __builtin_va_start(args, fmt);
+
+    extern volatile unsigned char __end; // end of section
+    char *s = (char *)&__end;
+    vsprintf(s, fmt, args);
+    uart_putstr(s);
+}
+
+char async_getchar() {
+    // await when empty buffer
+    while(is_queue_empty(uart_buffer_read)) {
+        asm volatile("nop");
+    }
+
+    char c = queue_pop(uart_buffer_read);
+    return c=='\r' ? '\n' : c;
+}
+
+void async_putchar(char c) {
+    queue_push(uart_buffer_write, c);
+    *AUX_MU_IER_REG |= 0b10;
 }
