@@ -7,13 +7,11 @@
 #define POOL_UNIT 16
 #define POOL_SIZE 128 // 16 * 1 - 16 * 128(2048)
 
+#include "typedef.h"
+
 enum page_status {
     AVAIL,
     USED,
-};
-
-struct list_head {
-    struct list_head *next, *prev;
 };
 
 struct buddy_head {

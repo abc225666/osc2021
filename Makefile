@@ -9,7 +9,7 @@ DST_DIR = img
 LINKER_FILE = $(SRC_DIR)/linker.ld
 
 SRCS_ASM=$(wildcard $(SRC_DIR)/*.S)
-OBJS_ASM=$(SRCS_ASM:.S=.o)
+OBJS_ASM=$(SRCS_ASM:.S=_asm.o)
 SRCS=$(wildcard $(SRC_DIR)/*.c)
 OBJS=$(SRCS:.c=.o)
 
@@ -19,7 +19,7 @@ CFLAGS = -I include/ -Wall -fno-builtin-memset
 
 all: dir $(DST_DIR)/kernel8.img
 
-$(SRC_DIR)/%.o: $(SRC_DIR)/%.S
+$(SRC_DIR)/%_asm.o: $(SRC_DIR)/%.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(SRC_DIR)/%.o: $(SRC_DIR)/%.c

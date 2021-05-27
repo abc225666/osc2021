@@ -20,11 +20,12 @@ SECTIONS {
     .data : {
         *(.data*)
     }
-    .bss (NOLOAD) : {
-        . = ALIGN(16);
+    .bss ALIGN(16) (NOLOAD) : {
         __bss_begin = .;
         *(.bss*)
         __bss_end = .;
     }
     __end = .;
 }
+
+__bss_size = (__bss_end - __bss_begin) >> 3;

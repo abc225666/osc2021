@@ -11,13 +11,12 @@ _start:
 
 bsszero:
   ldr x0, =__bss_begin
-  ldr x1, =__bss_end
-  sub x1, x1, x0
+  ldr x1, =__bss_size
 
 loopbsszero:
   cbz x1, 1f
   str xzr, [x0], #8
-  sub x1, x1, #8
+  sub x1, x1, #1
   cbnz x1, loopbsszero
 
 1:
