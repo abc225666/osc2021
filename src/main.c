@@ -18,7 +18,6 @@ void kernel_main() {
     mm_init();
     uart_buffer_init();
     irq_init();
-    //core_timer_enable();
 
 
     async_putstr("\r\n");
