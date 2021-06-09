@@ -53,13 +53,3 @@ el1_start:
   msr vbar_el1, x1
 
   eret
-
-.global el0_start
-el0_start:
-  ldr x1, =SPSR_EL1_VALUE
-  msr spsr_el1, x1
-  msr elr_el1, x0
-
-  ldr x1, =0x40000
-  msr sp_el0, x1
-  eret

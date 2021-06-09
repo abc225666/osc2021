@@ -6,6 +6,7 @@
 #include "sysregs.h"
 #include "timer.h"
 #include "cpio.h"
+#include "irq.h"
 
 extern void el0_start();
 
@@ -58,6 +59,7 @@ void shell_cmd(char* cmd) {
         kfree(addr); 
     }
     else if(!strncmp(cmd, "loaduser", 8)) {
+        uart_printf("load user prog\n");
         core_timer_enable();
         void *addr = load_program();
         void (*func)(void) = addr;

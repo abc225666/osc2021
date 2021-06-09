@@ -163,6 +163,7 @@ void page_init() {
     uart_printf("end: %x\n", arm_memory_end);
     unsigned long first_avail_page = (unsigned long)&__end / PAGE_SIZE + 1;
     unsigned long end_page = arm_memory_end / PAGE_SIZE;
+    uart_printf("first avai: %d\n", first_avail_page);
     uart_printf("%d\n", end_page);
 
     unsigned long bytes = sizeof(struct page_t) * end_page;

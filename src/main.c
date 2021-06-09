@@ -19,8 +19,8 @@ void kernel_main() {
     uart_buffer_init();
     irq_init();
     //core_timer_enable();
-    //el0_start();
-    //asm volatile("svc 0");
+
+
     async_putstr("\r\n");
     async_putstr("# ");
     while(1) {

@@ -5,7 +5,7 @@
 #include "queue.h"
 #include "uart.h"
 
-void sync_exc_runner(unsigned long esr, unsigned long elr) {
+void sync_exc_runner(unsigned long esr, unsigned long elr, unsigned long far) {
     unsigned long ec = (esr>>26) & 0b111111;
     unsigned long iss = esr & 0x1FFFFFF;
     if(ec==0b010101) { // from aarch64 svc
@@ -20,6 +20,8 @@ void sync_exc_runner(unsigned long esr, unsigned long elr) {
     else {
         uart_printf("Exception class (EC): 0x%x\n", ec);
         uart_printf("esr: %x\n", esr);
+        uart_printf("elr: %x\n", elr);
+        uart_printf("ec: %x, iss: %x, far: %x\n", ec, iss, far);
     }
 }
 
@@ -46,10 +48,10 @@ void uart_irq_handler() {
 }
 
 void irq_exc_runner() {
-    unsigned long irq_pending = *IRQ_PENDING1;
+    unsigned int irq_pending = (unsigned int)*IRQ_PENDING1;
 
     // uart0 in irq 61 = 32+29
-    if(irq_pending & (1<<29)) {
+    if(irq_pending & (1<<(29))) {
         uart_irq_handler();
     }
     else {

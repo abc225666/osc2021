@@ -1,7 +1,8 @@
 #include "exception_handler.h"
+#include "sysregs.h"
 
 .macro save_all
-  sub sp, sp, 32 * 8
+  sub sp, sp, 16 * 16
   stp x0, x1, [sp ,16 * 0]
   stp x2, x3, [sp ,16 * 1]
   stp x4, x5, [sp ,16 * 2]
@@ -37,7 +38,7 @@
   ldp x26, x27, [sp ,16 * 13]
   ldp x28, x29, [sp ,16 * 14]
   ldr x30, [sp, 16 * 15]
-  add sp, sp, 32 * 8
+  add sp, sp, 16 * 16
 .endm
 
 .macro handle_invalid_entry type
@@ -45,12 +46,13 @@
   mov x0, #\type
   mrs x1, esr_el1
   mrs x2, elr_el1
+  mrs x3, far_el1
   bl show_exception_status
 .endm
 
 .macro ventry label
-  .align 7
   b \label
+  .align 7
 .endm
 
 .section ".text"
@@ -63,7 +65,7 @@ exception_handler:
   ventry fiq_invalid_el1t
   ventry error_invalid_el1t
 
-  ventry sync_invalid_el1h
+  ventry sync_exc_handler
   ventry irq_exc_handler
   ventry fiq_invalid_el1h
   ventry error_invalid_el1h
@@ -139,3 +141,15 @@ irq_exc_handler:
   bl irq_exc_runner
   load_all
   eret
+
+.global el0_start
+el0_start:
+  save_all
+  ldr x1, =SPSR_EL1_VALUE
+  msr spsr_el1, x1
+  msr elr_el1, x0
+
+  ldr x1, =0x40000
+  msr sp_el0, x1
+  eret
+
