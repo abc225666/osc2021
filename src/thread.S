@@ -21,10 +21,10 @@ switch_to:
 
 .global update_current_thread
 update_current_thread:
-    msr tpidr_el1, x0
+    msr tpidr_el0, x0
     ret
 
 .global get_current_thread
 get_current_thread:
-    mrs x0, tpidr_el1
+    mrs x0, tpidr_el0
     ret

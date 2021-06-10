@@ -1,6 +1,7 @@
 #include "thread.h"
 #include "allocator.h"
 #include "uart.h"
+#include "process.h"
 
 struct thread_head *thread_pool;
 
@@ -23,14 +24,15 @@ void thread_create(void(*func)()) {
 
 
     // allocate require memory
-    void *sp =  kmalloc(KSTACK_SIZE) + KSTACK_SIZE - 16;
+    void *sp =  kmalloc(KSTACK_SIZE) + KSTACK_SIZE;
 
     // set program address
-    t->context.lr = (unsigned long)func;
+    t->fptr = func;
+    t->context.lr = (unsigned long)exit_wrapper;
     t->context.fp = (unsigned long)sp;
     t->context.sp = (unsigned long)sp;
 
-    async_printf("create\n");
+    async_printf("create, sp: %x\n", sp);
 
     thread_push(t);
 }
@@ -60,8 +62,16 @@ void schedule() {
         thread_push(cur_thread);
     }
     struct thread_t *next_thread = thread_pop();
-    async_printf("tid %d\n", next_thread->tid);
-    context_switch(cur_thread, next_thread);
+    //async_printf("tid %d\n", next_thread->tid);
+    update_current_thread(next_thread);
+    switch_to(&cur_thread->context, &next_thread->context);
+}
+
+void exit_wrapper() {
+    struct thread_t *thread = get_current_thread();
+    thread->fptr();
+    thread->state = ZOMBIE;
+    schedule();
 }
 
 

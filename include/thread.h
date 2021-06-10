@@ -8,6 +8,7 @@
 typedef enum {
     RUNNING,
     WAITING,
+    ZOMBIE,
     DEAD
 } THREAD_STATE;
 
@@ -35,6 +36,7 @@ struct cpu_context {
 struct thread_t {
     struct list_head list;
     int tid;
+    void (*fptr)();
     THREAD_STATE state;
     struct cpu_context context;
 };
@@ -50,5 +52,6 @@ struct thread_t *thread_pop();
 
 void schedule();
 void context_switch(struct thread_t *cur_thread, struct thread_t *next_thread);
+void exit_wrapper();
 
 #endif

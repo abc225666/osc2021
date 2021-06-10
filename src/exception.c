@@ -4,6 +4,7 @@
 #include "irq.h"
 #include "queue.h"
 #include "uart.h"
+#include "thread.h"
 
 void sync_exc_runner(unsigned long esr, unsigned long elr, unsigned long far) {
     unsigned long ec = (esr>>26) & 0b111111;
@@ -13,8 +14,13 @@ void sync_exc_runner(unsigned long esr, unsigned long elr, unsigned long far) {
             case 0:
                 uart_printf("get exception 1\n");
                 break;
+            case 1:
+                // sys_schedule
+                schedule();
+                break;
             default:
-                uart_printf("undefined syscall\n");
+                uart_printf("undefined syscall %x\n", iss);
+                break;
         } 
     }
     else {

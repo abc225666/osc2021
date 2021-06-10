@@ -194,7 +194,7 @@ void page_init() {
             idx++;
         }
         else if(idx + (1<<order)-1 < end_page) {
-            uart_printf("order: %d, idx: %d, addr: %x, phy: %x\n", order, idx, &page[idx].list, idx*PAGE_SIZE);
+            //uart_printf("order: %d, idx: %d, addr: %x, phy: %x\n", order, idx, &page[idx].list, idx*PAGE_SIZE);
             page[idx].status = AVAIL;
             page[idx].order = order;
             page[idx].idx = idx;

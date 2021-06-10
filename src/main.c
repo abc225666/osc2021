@@ -6,20 +6,23 @@
 #include "timer.h"
 #include "irq.h"
 #include "thread.h"
+#include "process.h"
+#include "syscall.h"
 
 #define CMDSIZE 128
 
 extern void el0_start();
 
 void foo(){
-    for(int i = 0; i < 10; ++i) {
+    for(int i = 0; i < 2; ++i) {
         struct thread_t *current_thread = get_current_thread();
-        async_printf("Thread id: %d %d\n", current_thread->tid, i);
+        async_printf("Thread id: %d %d\n", get_pid(), i);
         schedule();
     }
 }
 
 void idle() {
+    async_printf("idle\n");
     while(1) {
         schedule();
     }
@@ -44,9 +47,8 @@ void kernel_main() {
     struct thread_t init_thread;
     init_thread.tid = 0;
     init_thread.state = DEAD;
-    init_thread.context.sp = 0x60000;
+    init_thread.context.sp = 0x40000;
     update_current_thread(&init_thread);
-
 
     schedule();
 
