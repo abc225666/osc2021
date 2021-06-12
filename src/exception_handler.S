@@ -56,7 +56,6 @@
   mov x0, #\type
   mrs x1, esr_el1
   mrs x2, elr_el1
-  mrs x3, far_el1
   bl show_exception_status
 .endm
 
@@ -142,6 +141,8 @@ sync_exc_handler:
   save_all
   mrs x0, esr_el1
   mrs x1, elr_el1
+  mov x2, sp
+  mrs x3, far_el1
   bl sync_exc_runner
   load_all
   eret

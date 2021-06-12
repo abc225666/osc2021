@@ -83,6 +83,14 @@ void memset(char* a, unsigned int value, unsigned int size) {
     }
 }
 
+long strlen(char *s) {
+    long len = 0;
+    while(*s++) {
+        len++;
+    }
+    return len;
+}
+
 unsigned int vsprintf(char *dest, char *fmt, __builtin_va_list args) {
     char *dest_orig = dest;
 

@@ -37,6 +37,10 @@ struct thread_t {
     struct list_head list;
     int tid;
     void (*fptr)();
+    void *sp_base;
+    void *user_sp_base;
+    void *user_sp;
+    int argc;
     THREAD_STATE state;
     struct cpu_context context;
 };
@@ -46,7 +50,7 @@ extern void update_current_thread(struct thread_t *t);
 extern struct thread_t *get_current_thread();
 
 void thread_pool_init();
-void thread_create(void (*func)());
+void thread_create(void *func, int argc, char *argv[]);
 void thread_push(struct thread_t *thread);
 struct thread_t *thread_pop();
 
