@@ -11,7 +11,7 @@ struct trapframe {
 int getpid();
 unsigned int kuart_read(char buf[], unsigned int size);
 unsigned int kuart_write(char buf[], unsigned int size);
-int exec(const char *name, char *const argv[]);
+int exec(void *name, char *const argv[]);
 void schedule();
 void exit();
 int fork();

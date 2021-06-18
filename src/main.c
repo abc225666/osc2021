@@ -7,8 +7,7 @@
 #include "irq.h"
 #include "thread.h"
 #include "syscall.h"
-
-#define CMDSIZE 128
+#include "demo.h"
 
 extern void el0_start();
 
@@ -55,8 +54,6 @@ void idle() {
 }
 
 void kernel_main() {
-    char cmd[CMDSIZE] = { 0 };
-    int cmd_idx=0;
     mbox_arm_memory();
     uart_init();
     mm_init();
@@ -65,9 +62,7 @@ void kernel_main() {
     thread_pool_init();
 
     thread_create(idle, 0, NULL);
-    //thread_create(foo, 0, NULL);
-    //thread_create(foo2, 0, NULL);
-    thread_create(demo_fork, 0, NULL);
+    thread_create(demo_0, 0, NULL);
 
     // first thread
     struct thread_t init_thread;
@@ -77,33 +72,4 @@ void kernel_main() {
     update_current_thread(&init_thread);
 
     do_schedule();
-
-    async_putstr("\r\n");
-    async_putstr("# ");
-    while(1) {
-        char c = async_getchar();
-        switch(c) {
-            case '\n':
-                cmd[cmd_idx] = 0;
-                async_putstr("\n");
-                shell_cmd(cmd);
-                async_putstr("# ");
-                memset(cmd, 0, CMDSIZE);
-                cmd_idx = 0;
-                break;
-            case 127:
-                if(cmd_idx) {
-                    async_putstr("\b \b");
-                    cmd_idx--;
-                }
-                break;
-            default:
-                if(c>31 && c<127) {
-                    cmd[cmd_idx] = c;
-                    cmd_idx++;
-                    async_putchar(c);
-                }
-                break;
-        }
-    }
 }
