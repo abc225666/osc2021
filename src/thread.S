@@ -1,3 +1,5 @@
+#include "sysregs.h"
+
 .global switch_to
 switch_to:
   mov x9, sp
@@ -17,6 +19,7 @@ switch_to:
   ldp fp, lr,   [x1, 16 * 5]
   ldr x9,       [x1, 16 * 6]
   mov sp, x9
+
   ret
 
 .global update_current_thread
@@ -28,3 +31,12 @@ update_current_thread:
 get_current_thread:
   mrs x0, tpidr_el0
   ret
+
+
+.global run_in_el0
+run_in_el0:
+  ldr x8, =SPSR_EL1_VALUE
+  msr spsr_el1, x8
+  msr elr_el1, lr
+  msr sp_el0, x0
+  eret

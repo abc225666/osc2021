@@ -59,6 +59,7 @@ el1_start:
   msr vbar_el1, x1
   eret
 
+.global el0_start_orig
 el0_start_orig:
   ldr x1, =SPSR_EL1_VALUE
   msr spsr_el1, x1

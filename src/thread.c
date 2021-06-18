@@ -3,10 +3,16 @@
 #include "uart.h"
 #include "process.h"
 #include "mystring.h"
+#include "syscall.h"
 
 struct thread_head *thread_pool;
 
 int global_tid = 1;
+
+int new_pid() {
+    global_tid++;
+    return global_tid-1;
+}
 
 void thread_pool_init() {
     thread_pool = (struct thread_head *)kmalloc(sizeof(struct thread_head));
@@ -14,6 +20,8 @@ void thread_pool_init() {
     thread_pool->num_threads = 0;
     thread_pool->thread_list.next = &thread_pool->thread_list;
     thread_pool->thread_list.prev = &thread_pool->thread_list;
+
+    uart_printf("thread_pool: %x\n", thread_pool);
 }
 
 void thread_create(void *func, int argc, char *argv[]) {
@@ -36,7 +44,7 @@ void thread_create(void *func, int argc, char *argv[]) {
     t->context.fp = (unsigned long)sp_base + KSTACK_SIZE;
     t->context.sp = (unsigned long)sp_base + KSTACK_SIZE;
 
-    async_printf("create, sp: %x\n", sp_base + KSTACK_SIZE);
+    async_printf("create, sp: %x\n", sp_base);
 
     t->argc = argc;
     void *user_sp = user_sp_base + KSTACK_SIZE;
@@ -68,7 +76,7 @@ struct thread_t *thread_pop() {
     return res;
 }
 
-void schedule() {
+void do_schedule() {
     struct thread_t *cur_thread = get_current_thread();
     if(cur_thread->state == RUNNING) {
         thread_push(cur_thread);
@@ -82,9 +90,11 @@ void schedule() {
 void exit_wrapper() {
     struct thread_t *thread = get_current_thread();
     thread->fptr(thread->argc, thread->user_sp);
+    thread = get_current_thread();
     thread->state = ZOMBIE;
     kfree(thread->sp_base);
-    schedule();
+    kfree(thread->user_sp_base);
+    do_schedule();
 }
 
 

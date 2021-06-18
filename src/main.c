@@ -12,12 +12,36 @@
 
 extern void el0_start();
 
+void foo2(){
+    for(int i = 0; i < 10; ++i) {
+        async_printf("Thread id: %d %d\n", getpid(), i);
+        do_schedule();
+    }
+}
+
+void wow(int argc, char *argv[]) {
+    async_printf("QQ\n", argv[0], argv[1]);
+    async_putstr(argv[0]);
+    async_putstr(argv[1]);
+}
+
 void foo(){
     for(int i = 0; i < 10; ++i) {
         async_printf("Thread id: %d %d\n", getpid(), i);
-        schedule();
+        if(i==2) {
+            exit();
+        }
+        do_schedule();
     }
 }
+
+void demo_fork() {
+    int wowo = 1;
+    int pid = fork();
+    async_printf("fork: %d, wowo: %d\n", pid, wowo);
+}
+
+
 
 void bar(int argc, char *argv[]) {
     async_putstr(argv[0]);
@@ -26,7 +50,7 @@ void bar(int argc, char *argv[]) {
 void idle() {
     async_printf("idle\n");
     while(1) {
-        schedule();
+        do_schedule();
     }
 }
 
@@ -40,10 +64,10 @@ void kernel_main() {
     irq_init();
     thread_pool_init();
 
-
     thread_create(idle, 0, NULL);
-    thread_create(foo, 0, NULL);
-    thread_create(foo, 0, NULL);
+    //thread_create(foo, 0, NULL);
+    //thread_create(foo2, 0, NULL);
+    thread_create(demo_fork, 0, NULL);
 
     // first thread
     struct thread_t init_thread;
@@ -52,8 +76,7 @@ void kernel_main() {
     init_thread.context.sp = 0x40000;
     update_current_thread(&init_thread);
 
-    schedule();
-
+    do_schedule();
 
     async_putstr("\r\n");
     async_putstr("# ");

@@ -45,6 +45,8 @@ struct thread_t {
     struct cpu_context context;
 };
 
+int new_pid();
+
 extern void switch_to(struct cpu_context *prev, struct cpu_context *next);
 extern void update_current_thread(struct thread_t *t);
 extern struct thread_t *get_current_thread();
@@ -54,7 +56,7 @@ void thread_create(void *func, int argc, char *argv[]);
 void thread_push(struct thread_t *thread);
 struct thread_t *thread_pop();
 
-void schedule();
+void do_schedule();
 void context_switch(struct thread_t *cur_thread, struct thread_t *next_thread);
 void exit_wrapper();
 

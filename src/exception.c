@@ -6,7 +6,10 @@
 #include "uart.h"
 #include "thread.h"
 #include "syscall.h"
-#include "thread.h"
+#include "allocator.h"
+#include "sysregs.h"
+#include "string.h"
+#include "exception_handler.h"
 
 void irq_enable() {
     asm volatile("msr daifclr, #2");
@@ -34,6 +37,18 @@ void sync_exc_runner(unsigned long esr, unsigned long elr, struct trapframe *tra
                     break;
                 case 2:
                     sys_uart_write(trapframe);
+                    break;
+                case 3:
+                    sys_exec(trapframe);
+                    break;
+                case 4:
+                    sys_exit(trapframe);
+                    break;
+                case 5:
+                    sys_schedule(trapframe);
+                    break;
+                case 6:
+                    sys_fork(trapframe);
                     break;
                 default:
                     uart_printf("undefined syscall %x\n", iss);
@@ -77,6 +92,94 @@ void sys_uart_write(struct trapframe *trapframe) {
     }
     irq_disable();
     trapframe->x[0] = size;
+}
+
+void sys_exit(struct trapframe *trapframe) {
+    // release current thread
+    struct thread_t *thread = get_current_thread();
+    thread->state = ZOMBIE;
+    kfree(thread->sp_base);
+    asm volatile("msr elr_el1, %0" : : "r"(do_schedule));
+    asm volatile("eret");
+}
+
+void sys_exec(struct trapframe *trapframe) {
+    void *func = (void *)trapframe->x[0];
+    char **argv = (char **)trapframe->x[1];
+    
+    int argc = 0;
+    int i = 0;
+    while(argv[i]!=0) {
+        argc++;
+        i++;
+    }
+
+    struct thread_t *thread = get_current_thread();
+    thread->fptr = func;
+    thread->context.lr = (unsigned long)exit_wrapper;
+    thread->context.fp = (unsigned long)(thread->sp_base + KSTACK_SIZE);
+    thread->context.sp = (unsigned long)(thread->sp_base + KSTACK_SIZE);
+    thread->argc = argc;
+
+    void *user_sp = thread->user_sp_base + KSTACK_SIZE;
+    for(int i=argc-1;i>=0;i--) {
+        user_sp -= sizeof(argv[i]);
+        *(char **)user_sp = argv[i];
+    }
+    thread->user_sp = user_sp;
+
+    trapframe->x[0] = 0;
+    asm volatile("msr sp_el0, %0" : : "r"(thread->sp_base+KSTACK_SIZE));
+    asm volatile("msr elr_el1, %0" : : "r"(exit_wrapper));
+    asm volatile("msr spsr_el1, %0" : : "r"(SPSR_EL1_VALUE));
+    asm volatile("eret");
+
+}
+
+void sys_schedule(struct trapframe *trapframe) {
+    do_schedule();
+}
+
+void sys_fork(struct trapframe *trapframe) {
+    // create new thread
+    struct thread_t *new_thread = (struct thread_t *)kmalloc(sizeof(struct thread_t));
+
+    // copy current thread info
+    struct thread_t *cur_thread = get_current_thread();
+    memcpy(new_thread, cur_thread, sizeof(struct thread_t));
+
+    new_thread->tid = new_pid();
+    uart_printf("fork pid: %d\n", new_thread->tid);
+    // create self sp and copy
+    new_thread->sp_base = kmalloc(KSTACK_SIZE);
+    new_thread->user_sp_base = kmalloc(KSTACK_SIZE);
+    uart_printf("fork create: %x %x\n", new_thread->sp_base, new_thread->user_sp_base);
+
+    memcpy(new_thread->sp_base, cur_thread->sp_base, KSTACK_SIZE);
+    memcpy(new_thread->user_sp_base, cur_thread->user_sp_base, KSTACK_SIZE);
+    
+
+    // set correct sp, fp in context
+    new_thread->context.fp = (unsigned long)new_thread->sp_base + KSTACK_SIZE;
+    new_thread->context.sp = trapframe->sp_el0 - (unsigned long)cur_thread->sp_base + (unsigned long)new_thread->sp_base;
+
+    new_thread->user_sp = cur_thread->user_sp - cur_thread->user_sp_base + new_thread->user_sp_base;
+
+
+    // append trapframe to fork process
+    new_thread->context.sp -= sizeof(struct trapframe);
+    memcpy(new_thread->context.sp, trapframe, sizeof(struct trapframe));
+
+
+    // set correct lr
+    //new_thread->context.lr = trapframe->x[30];
+    new_thread->context.lr = exit_fork; 
+
+    thread_push(new_thread);
+
+    struct trapframe *child_trapframe = (struct trapframe *)new_thread->context.sp;
+    child_trapframe->x[0] = 0;
+    trapframe->x[0] = new_thread->tid;
 }
 
 void uart_irq_handler() {

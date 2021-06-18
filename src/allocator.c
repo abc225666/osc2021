@@ -45,7 +45,7 @@ struct page_t *buddy_pop(struct buddy_head *buddy, int order) {
     int cur_order = target_page->order;
 
     while(cur_order > order) {
-        uart_printf("split order %d to %d\n", cur_order, cur_order-1);
+        //uart_printf("split order %d to %d\n", cur_order, cur_order-1);
         cur_order--;
         struct page_t *left = target_page;
         struct page_t *right = target_page + (1<<cur_order);
@@ -90,7 +90,7 @@ void buddy_free(void *mem_addr) {
     // merge buddy
     while(buddy_p->status == AVAIL && buddy_p->order == order) {
         buddy_remove(&buddy_order[order], &(buddy_p->list));
-        uart_printf("merge buddy order %d to %d\n", order, order+1);
+        //uart_printf("merge buddy order %d to %d\n", order, order+1);
 
         order++;
         if(page_idx < buddy_idx) {
@@ -135,10 +135,10 @@ void *pool_alloc(unsigned long size) {
     unsigned int pool_idx = align_size / POOL_UNIT - 1;
 
     struct pool_t *pool = &obj_pool[pool_idx];
-    uart_printf("alloc from pool size: %d\n", (pool_idx + 1) * POOL_UNIT);
+    //uart_printf("alloc from pool size: %d\n", (pool_idx + 1) * POOL_UNIT);
     // take from pool free list
     if(pool->free_list.next != &pool->free_list) {
-        uart_printf("used free block\n");
+        //uart_printf("used free block\n");
         struct list_head *element = (struct list_head *)pool->free_list.next;
         element->prev->next = element->next;
         element->next->prev = element->prev;
@@ -148,7 +148,7 @@ void *pool_alloc(unsigned long size) {
     }
     // out of page, alloc new page
     if(pool->obj_used >= pool->page_used * pool->obj_per_page) {
-        uart_printf("request from buddy system\n");
+        //uart_printf("request from buddy system\n");
         pool->page_addr[pool->page_used] = buddy_alloc(0);
         pool->page_used++;
     }
@@ -160,11 +160,11 @@ void *pool_alloc(unsigned long size) {
 }
 
 void page_init() {
-    uart_printf("end: %x\n", arm_memory_end);
+    //uart_printf("end: %x\n", arm_memory_end);
     unsigned long first_avail_page = (unsigned long)&__end / PAGE_SIZE + 1;
     unsigned long end_page = arm_memory_end / PAGE_SIZE;
-    uart_printf("first avai: %d\n", first_avail_page);
-    uart_printf("%d\n", end_page);
+    //uart_printf("first avai: %d\n", first_avail_page);
+    //uart_printf("%d\n", end_page);
 
     unsigned long bytes = sizeof(struct page_t) * end_page;
     unsigned long ds_page = align_up(bytes, PAGE_SIZE) / PAGE_SIZE;
@@ -240,7 +240,7 @@ void *kmalloc(unsigned long size) {
         return buddy_alloc(order);
     }
     else {
-        uart_printf("malloc from pool\n");
+        //uart_printf("malloc from pool\n");
         return pool_alloc(size);
     }
 }
