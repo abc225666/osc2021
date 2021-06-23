@@ -77,19 +77,95 @@ int vfs_write(struct file *file, const void *buf, unsigned long len) {
     return file->f_ops->write(file, buf, len);
 }
 
-void list_dir(const char *pathname) {
+int vfs_ls(const char *pathname) {
     struct vnode *target_dir;
     char target_path[128];
     traversal(pathname, &target_dir, target_path);
 
-    struct list_head *p;
-    for(p=target_dir->dentry->childs.next;p!=&target_dir->dentry->childs;p=p->next) {
-        struct dentry *entry = list_entry(p, struct dentry, list);
-        async_printf("Name: ");
-        async_putstr(entry->name);
-        async_printf("\n");
+    return target_dir->v_ops->ls(target_dir);
+
+}
+
+int vfs_mkdir(const char *pathname) {
+    struct vnode *target_dir;
+
+    char newdir_name[128];
+    // last node is new node
+    traversal(pathname, &target_dir, newdir_name);
+    struct vnode *child_dir;
+    int res = target_dir->v_ops->mkdir(target_dir, &child_dir, newdir_name);
+    if(res<0) return res; // error
+    child_dir->dentry->type = DIRECTORY;
+    return 0;
+}
+
+int vfs_chdir(const char *pathname) {
+    struct thread_t *cur_thread = get_current_thread();
+
+    struct vnode *target_dir;
+    char path_remain[128];
+    traversal(pathname, &target_dir, path_remain);
+
+    if(strcmp(path_remain, "")) { // node left, not exist
+        return -1;
+    }
+    else {
+        cur_thread->pwd = target_dir->dentry;
+        return 0;
+    }
+}
+
+int vfs_mount(const char *device, const char *mountpoint, const char *filesystem) {
+    struct vnode *mount_dir;
+    char path_remain[128];
+    traversal(mountpoint, &mount_dir, path_remain);
+
+    // should mount on a directory
+    if(!strcmp(path_remain, "")) { // path exist
+        if(mount_dir->dentry->type != DIRECTORY) {
+            async_printf("mount fail 1\n");
+            return -1;
+        }
+    }
+    else { // path not exist
+        async_printf("mount fail 2\n");
+        return -2;
     }
 
+    struct mount *new_mount = (struct mount *)kmalloc(sizeof(struct mount));
+    if(!strcmp(filesystem, "tmpfs")) {
+        struct filesystem *tmpfs = (struct filesystem *)kmalloc(sizeof(struct filesystem));
+        tmpfs->name = (char *)kmalloc(sizeof(char)*strlen(device));
+        memcpy(tmpfs->name, device, strlen(device));
+        tmpfs->setup_mount = tmpfs_setup_mount;
+        tmpfs->setup_mount(tmpfs, new_mount);
+        mount_dir->dentry->mountpoint = new_mount;
+        new_mount->root->mount_parent = mount_dir->dentry;
+    }
+    return 0;
+}
+
+int vfs_umount(const char *mountpoint) {
+    struct vnode *mount_dir;
+    char path_remain[128];
+    traversal(mountpoint, &mount_dir, path_remain);
+    if(!strcmp(path_remain, "")) {
+        if(mount_dir->dentry->mount_parent == NULL) {
+            async_printf("unmount fail 1\n");
+            return -1;
+        } 
+    }
+    else {
+        // no mountpoint here
+        async_printf("unmount fail 2\n");
+        return -2;
+    }
+
+    // TODO: should recursive free dentry
+
+    mount_dir->dentry->mount_parent->mountpoint = NULL;
+
+    return 0;
 }
 
 void traversal(const char *pathname, struct vnode **target_node, char *target_path) {
@@ -115,8 +191,14 @@ void traversal_recursive(struct dentry *node, const char *path, struct vnode **t
         target_path[i] = path[i];
         i++;
     }
-    target_path[i++] = '\0';
+    target_path[i] = '\0';
+    if(path[i]!='\0') {
+        i++;
+    }
+
+
     *target_node = node->vnode;
+
     if(!strcmp(target_path, "")) {
         // end recur, notice two slash may also enter here
         return;
@@ -126,7 +208,10 @@ void traversal_recursive(struct dentry *node, const char *path, struct vnode **t
     for(p=(&node->childs)->next;p!=&node->childs;p=p->next) {
         struct dentry *entry = list_entry(p, struct dentry, list);
         if(!strcmp(entry->name, target_path)) {
-            if(entry->type == DIRECTORY) {
+            if(entry->mountpoint != NULL) { // something mount on
+                traversal_recursive(entry->mountpoint->root, path+i, target_node, target_path);
+            }
+            else if(entry->type == DIRECTORY) {
                 traversal_recursive(entry, path+i, target_node, target_path);
             }
             break;

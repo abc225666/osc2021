@@ -5,6 +5,7 @@
 
 #include "typedef.h"
 
+
 enum node_type {
     DIRECTORY,
     REGULAR_FILE
@@ -53,6 +54,8 @@ struct file_operations {
 struct vnode_operations {
     int (*lookup)(struct vnode* dir_node, struct vnode** target, const char* component_name);
     int (*create)(struct vnode* dir_node, struct vnode** target, const char* component_name);
+    int (*mkdir)(struct vnode* parent, struct vnode **target, const char *component_name);
+    int (*ls)(struct vnode *dir_node);
 };
 
 struct file *vfs_open(const char *pathname, int flags);
@@ -67,9 +70,12 @@ struct file *create_fd(struct vnode *target);
 void rootfs_init();
 int register_filesystem(struct filesystem *fs);
 
+int vfs_ls(const char *pathname);
+int vfs_mkdir(const char *pathname);
+int vfs_chdir(const char *pathname);
+int vfs_mount(const char *device, const char *mountpoint, const char *filesystem);
+int vfs_umount(const char *mountpoint);
+
 struct mount *rootfs;
-
-void list_dir(const char *pathname);
-
 
 #endif

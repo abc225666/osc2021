@@ -22,6 +22,8 @@ int tmpfs_read(struct file *file, void *buf, unsigned long len);
 // v_opts
 int tmpfs_lookup(struct vnode *dir_node, struct vnode **target, const char *component_name);
 int tmpfs_create(struct vnode *dir_node, struct vnode **target, const char *component_name);
+int tmpfs_mkdir(struct vnode *dir_node, struct vnode **target, const char *component_name);
+int tmpfs_ls(struct vnode *dir_node);
 
 
 #endif

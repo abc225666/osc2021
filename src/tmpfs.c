@@ -36,12 +36,14 @@ struct dentry *tmpfs_create_dentry(struct dentry *parent, const char *name, enum
 
     dentry->vnode = tmpfs_create_vnode(dentry);
     dentry->mountpoint = NULL;
+    dentry->mount_parent = NULL;
     dentry->type = type;
     return dentry;
 }
 
 struct vnode *tmpfs_create_vnode(struct dentry *dentry) {
     struct vnode *vnode = (struct vnode *)kmalloc(sizeof(struct vnode));
+    struct vnode *vnode2 = (struct vnode *)kmalloc(sizeof(struct vnode));
     vnode->dentry = dentry;
     
     // connect f_ops vops
@@ -54,6 +56,8 @@ int tmpfs_register() {
     tmpfs_v_ops = (struct vnode_operations *)kmalloc(sizeof(struct vnode_operations));
     tmpfs_v_ops->lookup = tmpfs_lookup;
     tmpfs_v_ops->create = tmpfs_create;
+    tmpfs_v_ops->mkdir = tmpfs_mkdir;
+    tmpfs_v_ops->ls = tmpfs_ls;
 
     tmpfs_f_ops = (struct file_operations *)kmalloc(sizeof(struct file_operations));
     tmpfs_f_ops->read = tmpfs_read;
@@ -111,5 +115,30 @@ int tmpfs_create(struct vnode *dir_node, struct vnode **target , const char *com
     d_child->vnode->internal = (void *)file_node;
 
     *target = d_child->vnode;
+    return 0;
+}
+
+int tmpfs_mkdir(struct vnode *dir_node, struct vnode **target, const char *component_name) {
+    struct tmpfs_internal *file_node = (struct tmpfs_internal *)kmalloc(sizeof(struct tmpfs_internal));
+    struct dentry *d_child = tmpfs_create_dentry(dir_node->dentry, component_name, DIRECTORY);
+    d_child->vnode->internal = (void *)file_node;
+
+    *target = d_child->vnode;
+    return 0;
+}
+
+int tmpfs_ls(struct vnode *dir_node) {
+    struct list_head *p;
+    for(p=dir_node->dentry->childs.next;p!=&dir_node->dentry->childs;p=p->next) {
+        struct dentry *entry = list_entry(p, struct dentry, list);
+        async_printf("Name: ");
+        async_putstr(entry->name);
+        if(entry->type==DIRECTORY) {
+            async_printf(", Type: Directory\n");
+        }
+        else if(entry->type==REGULAR_FILE) {
+            async_printf(", Type: Regular File\n");
+        }
+    }
     return 0;
 }

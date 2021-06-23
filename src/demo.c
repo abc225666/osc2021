@@ -83,10 +83,11 @@ void demo_vfs() {
 
     async_printf("%d %d\n", a, b);
 
-    write(a, "Hello", 6);
+    write(a, "Hello ", 6);
     write(b, "World!", 6);
     close(a);
     close(b);
+    async_printf("\nprintout\n");
 
     a = open("hello", 0);
     b = open("world", 0);
@@ -95,6 +96,39 @@ void demo_vfs() {
     sz += read(b, buf+sz, 100);
     buf[sz] = '\0';
     async_putstr(buf);
-    async_printf("\n", buf);
-    list_dir("/");
+    async_printf("\n\n", buf);
+
+    async_printf("create dir and file\n");
+    vfs_mkdir("dir");
+    async_printf("\n");
+    a = open("/dir/test_file", O_CREAT);
+    close(a);
+
+    async_printf("\nls /\n");
+    vfs_ls("/");
+
+    async_printf("\nls /dir\n");
+    vfs_ls("/dir");
+
+    async_printf("\nchange to /dir\n");
+    vfs_chdir("/dir"); 
+    vfs_ls("");
+
+    async_printf("\nchange to /\n");
+    vfs_chdir("/");
+    vfs_ls("");
+
+    async_printf("\nmount on dir\n");
+    vfs_mount("tmpfs", "/dir", "tmpfs");
+
+    async_printf("\ndo on mount fs\n");
+    a = open("/dir/mount_file", O_CREAT);
+    close(a);
+
+    async_printf("\nlsls\n");
+    vfs_ls("/dir");
+
+    async_printf("\numount\n");
+    vfs_umount("/dir");
+    vfs_ls("/dir");
 }

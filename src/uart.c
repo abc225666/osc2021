@@ -112,7 +112,7 @@ void async_printf(char *fmt, ...) {
     extern volatile unsigned char __end; // end of section
     char *s = (char *)&__end;
     vsprintf(s, fmt, args);
-    uart_putstr(s);
+    async_putstr(s);
 }
 
 char async_getchar() {
