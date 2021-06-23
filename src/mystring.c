@@ -37,7 +37,7 @@ long atoi(char *s) {
     return i;
 }
 
-int strcmp(char* a, char* b) {
+int strcmp(const char* a, const char* b) {
     int flag = 0;
     while(flag==0) {
         if(*a > *b) {
@@ -68,13 +68,12 @@ int strncmp(char* a, char* b, unsigned long n) {
     return 0;
 }
 
-char *memcpy(char *dest, char *src, unsigned long n) {
+void memcpy(char *dest, const char *src, unsigned long n) {
     char *d = dest;
-    char *s = src;
+    const char *s = src;
     while(n--) {
         *d++ = *s++;
     }
-    return dest;
 }
 
 void memset(char* a, unsigned int value, unsigned int size) {
@@ -83,7 +82,7 @@ void memset(char* a, unsigned int value, unsigned int size) {
     }
 }
 
-long strlen(char *s) {
+long strlen(const char *s) {
     long len = 0;
     while(*s++) {
         len++;
@@ -115,6 +114,10 @@ unsigned int vsprintf(char *dest, char *fmt, __builtin_va_list args) {
                 while(*p) {
                     *dest++ = *p++;
                 }
+            }
+            else if(*fmt == 'c') {
+                char arg = __builtin_va_arg(args, int);
+                *dest++ = arg;
             }
         }
         else {

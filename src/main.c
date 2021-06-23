@@ -60,9 +60,10 @@ void kernel_main() {
     uart_buffer_init();
     irq_init();
     thread_pool_init();
+    rootfs_init();
 
     thread_create(idle, 0, NULL);
-    thread_create(demo_0, 0, NULL);
+    thread_create(demo_vfs, 0, NULL);
 
     // first thread
     struct thread_t init_thread;

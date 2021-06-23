@@ -39,3 +39,27 @@ fork:
   mov x8, #6
   svc #0
   ret
+
+.global open
+open:
+  mov x8, #7
+  svc #0
+  ret
+
+.global close
+close:
+  mov x8, #8
+  svc #0
+  ret
+
+.global read
+read:
+  mov x8, #9
+  svc #0
+  ret
+
+.global write
+write:
+  mov x8, #10
+  svc #0
+  ret

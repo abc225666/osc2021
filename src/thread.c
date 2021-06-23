@@ -4,6 +4,7 @@
 #include "process.h"
 #include "mystring.h"
 #include "syscall.h"
+#include "vfs.h"
 
 struct thread_head *thread_pool;
 
@@ -24,30 +25,36 @@ void thread_pool_init() {
     uart_printf("thread_pool: %x\n", thread_pool);
 }
 
-void thread_create(void *func, int argc, char *argv[]) {
+struct thread_t *thread_obj_create() {
     struct thread_t *t = (struct thread_t *)kmalloc(sizeof(struct thread_t));
-
-    // setup thread info
     t->tid = global_tid++;
     t->state = RUNNING;
+    t->sp_base = kmalloc(KSTACK_SIZE);
+    t->user_sp_base = kmalloc(KSTACK_SIZE);
+    t->pwd = rootfs->root;
 
+    // init fd status
+    for(int i=0;i<MAX_FD;i++) {
+        t->fd[i].file = NULL;
+        t->fd[i].status = FD_RELEASE;
+    }
 
-    // allocate require memory
-    void *sp_base =  kmalloc(KSTACK_SIZE);
-    void *user_sp_base = kmalloc(KSTACK_SIZE);
+    return t;
+}
+
+void thread_create(void *func, int argc, char *argv[]) {
+    struct thread_t *t = thread_obj_create();
 
     // set program address
     t->fptr = func;
-    t->sp_base = sp_base;
-    t->user_sp_base = user_sp_base;
     t->context.lr = (unsigned long)exit_wrapper;
-    t->context.fp = (unsigned long)sp_base + KSTACK_SIZE;
-    t->context.sp = (unsigned long)sp_base + KSTACK_SIZE;
+    t->context.fp = (unsigned long)t->sp_base + KSTACK_SIZE;
+    t->context.sp = (unsigned long)t->sp_base + KSTACK_SIZE;
 
-    async_printf("create, sp: %x\n", sp_base);
+    async_printf("create, sp: %x\n", t->sp_base);
 
     t->argc = argc;
-    void *user_sp = user_sp_base + KSTACK_SIZE;
+    void *user_sp = t->user_sp_base + KSTACK_SIZE;
     for(int i=argc-1;i>=0;i--) {
         user_sp -= sizeof(argv[i]);
         *(char **)user_sp = argv[i];

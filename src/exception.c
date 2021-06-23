@@ -10,6 +10,7 @@
 #include "sysregs.h"
 #include "string.h"
 #include "exception_handler.h"
+#include "vfs.h"
 
 void irq_enable() {
     asm volatile("msr daifclr, #2");
@@ -49,6 +50,18 @@ void sync_exc_runner(unsigned long esr, unsigned long elr, struct trapframe *tra
                     break;
                 case 6:
                     sys_fork(trapframe);
+                    break;
+                case 7:
+                    sys_open(trapframe);
+                    break;
+                case 8:
+                    sys_close(trapframe);
+                    break;
+                case 9:
+                    sys_read(trapframe);
+                    break;
+                case 10:
+                    sys_write(trapframe);
                     break;
                 default:
                     uart_printf("undefined syscall %x\n", iss);
@@ -180,6 +193,69 @@ void sys_fork(struct trapframe *trapframe) {
     struct trapframe *child_trapframe = (struct trapframe *)new_thread->context.sp;
     child_trapframe->x[0] = 0;
     trapframe->x[0] = new_thread->tid;
+}
+
+void sys_open(struct trapframe *trapframe) {
+    char *filename = (char *)trapframe->x[0];
+    int flags = (int)trapframe->x[1];
+    
+    struct file *file = vfs_open(filename, flags);
+
+    // find empty fd and link with file
+    struct thread_t *cur_thread = get_current_thread();
+    for(int i=0;i<MAX_FD;i++) {
+        if(cur_thread->fd[i].status==FD_RELEASE) {
+            trapframe->x[0] = i;
+            cur_thread->fd[i].status = FD_USING;
+            cur_thread->fd[i].file = file;
+            break;
+        }
+    }
+}
+
+void sys_close(struct trapframe *trapframe) {
+    int fd_num = (int)trapframe->x[0];
+    struct thread_t *cur_thread = get_current_thread();
+    if(cur_thread->fd[fd_num].status == FD_USING) {
+        vfs_close(cur_thread->fd[fd_num].file);
+        cur_thread->fd[fd_num].file = NULL;
+        cur_thread->fd[fd_num].status = FD_RELEASE;
+
+        trapframe->x[0] = 0;
+    }
+    else {
+        trapframe->x[0] = -1;
+    }
+}
+
+void sys_read(struct trapframe *trapframe) {
+    int fd = trapframe->x[0];
+    char *buf = (char *)trapframe->x[1];
+    int len = trapframe->x[2];
+
+    struct thread_t *cur_thread = get_current_thread();
+    if(cur_thread->fd[fd].status==FD_USING) {
+        int res = vfs_read(cur_thread->fd[fd].file, buf, len);
+        trapframe->x[0] = res;
+    }
+    else {
+        trapframe->x[0] = -1;
+    }
+}
+
+void sys_write(struct trapframe *trapframe) {
+    int fd = trapframe->x[0];
+    char *buf = (char *)trapframe->x[1];
+    int len = trapframe->x[2];
+
+    struct thread_t *cur_thread = get_current_thread();
+    if(cur_thread->fd[fd].status==FD_USING) {
+        int res = vfs_write(cur_thread->fd[fd].file, buf, len);
+        trapframe->x[0] = res;
+    }
+    else {
+        trapframe->x[0] = -1;
+    }
 }
 
 void uart_irq_handler() {

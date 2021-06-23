@@ -252,13 +252,13 @@ void kfree(void *ptr) {
             unsigned long page_base = (unsigned long)obj_pool[i].page_addr[j];
             unsigned long align_addr = align_down((unsigned long)ptr, PAGE_SIZE);
             if(page_base == align_addr) {
-                uart_printf("free from pool: 0x%x\n", ptr);
+                //uart_printf("free from pool: 0x%x\n", ptr);
                 pool_free(i, ptr);
                 return;
             }
         }
     }
-    uart_printf("free from buddy system\n");
+    //uart_printf("free from buddy system\n");
     buddy_free(ptr);
 }
 

@@ -2,8 +2,10 @@
 #define THREAD_H
 
 #include "typedef.h"
+#include "vfs.h"
 
 #define KSTACK_SIZE 4096
+#define MAX_FD 4096
 
 typedef enum {
     RUNNING,
@@ -11,6 +13,11 @@ typedef enum {
     ZOMBIE,
     DEAD
 } THREAD_STATE;
+
+typedef enum {
+    FD_USING,
+    FD_RELEASE,
+} FD_STATUS;
 
 struct thread_head {
     int num_threads;
@@ -33,6 +40,11 @@ struct cpu_context {
     unsigned long sp;
 };
 
+struct thread_fd_t {
+    struct file *file;
+    FD_STATUS status;
+};
+
 struct thread_t {
     struct list_head list;
     int tid;
@@ -41,6 +53,8 @@ struct thread_t {
     void *user_sp_base;
     void *user_sp;
     int argc;
+    struct thread_fd_t fd[MAX_FD];
+    struct dentry *pwd; 
     THREAD_STATE state;
     struct cpu_context context;
 };
@@ -53,6 +67,7 @@ extern struct thread_t *get_current_thread();
 
 void thread_pool_init();
 void thread_create(void *func, int argc, char *argv[]);
+struct thread_t *thread_obj_create();
 void thread_push(struct thread_t *thread);
 struct thread_t *thread_pop();
 

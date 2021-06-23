@@ -1,9 +1,10 @@
 #include "demo.h"
 #include "uart.h"
-#include "string.h"
+#include "mystring.h"
 #include "shell.h"
 #include "thread.h"
 #include "syscall.h"
+#include "vfs.h"
 
 #define CMDSIZE 128
 
@@ -73,4 +74,27 @@ void argv_test(int argc, char **argv) {
 void demo_0() {
     char *argv[] = {"argv_test", "-o", "arg2", 0};
     exec(argv_test, argv);
+}
+
+void demo_vfs() {
+    char buf[8]; 
+    int a = open("hello", O_CREAT);
+    int b = open("world", O_CREAT);
+
+    async_printf("%d %d\n", a, b);
+
+    write(a, "Hello", 6);
+    write(b, "World!", 6);
+    close(a);
+    close(b);
+
+    a = open("hello", 0);
+    b = open("world", 0);
+    int sz;
+    sz = read(a, buf, 100);
+    sz += read(b, buf+sz, 100);
+    buf[sz] = '\0';
+    async_putstr(buf);
+    async_printf("\n", buf);
+    list_dir("/");
 }

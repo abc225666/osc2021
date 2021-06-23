@@ -13,7 +13,7 @@ OBJS_ASM=$(SRCS_ASM:.S=_asm.o)
 SRCS=$(wildcard $(SRC_DIR)/*.c)
 OBJS=$(SRCS:.c=.o)
 
-CFLAGS = -I include/ -Wall -fno-builtin-memset
+CFLAGS = -I include/ -Wall -fno-builtin-memset -fno-builtin-memcpy
 
 .PHONY: clean all asm run dir
 

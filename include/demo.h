@@ -3,5 +3,6 @@
 
 void shell();
 void demo_0();
+void demo_vfs();
 
 #endif
