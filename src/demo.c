@@ -131,4 +131,14 @@ void demo_vfs() {
     async_printf("\numount\n");
     vfs_umount("/dir");
     vfs_ls("/dir");
+
+    //a = open("/sd/123.123", 0);
+    b = open("/sd/ttt.txt", O_CREAT);
+    async_printf("fd: %d\n", b);
+    write(b, "ZZZZZZ", 6);
+    //read(a, buf, 4);
+    //async_putstr(buf);
+    
+    //close(a);
+    close(b);
 }

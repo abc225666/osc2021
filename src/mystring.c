@@ -68,9 +68,9 @@ int strncmp(char* a, char* b, unsigned long n) {
     return 0;
 }
 
-void memcpy(char *dest, const char *src, unsigned long n) {
-    char *d = dest;
-    const char *s = src;
+void memcpy(void *dest, const void *src, unsigned long n) {
+    char *d = (char *)dest;
+    const char *s = (char *)src;
     while(n--) {
         *d++ = *s++;
     }

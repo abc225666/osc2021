@@ -2,6 +2,7 @@
 #define VFS_H
 
 #define O_CREAT 1
+#define EOF (-1)
 
 #include "typedef.h"
 
@@ -56,6 +57,7 @@ struct vnode_operations {
     int (*create)(struct vnode* dir_node, struct vnode** target, const char* component_name);
     int (*mkdir)(struct vnode* parent, struct vnode **target, const char *component_name);
     int (*ls)(struct vnode *dir_node);
+    int (*load_dentry)(struct dentry *dentry, const char *component_name);
 };
 
 struct file *vfs_open(const char *pathname, int flags);
@@ -77,5 +79,8 @@ int vfs_mount(const char *device, const char *mountpoint, const char *filesystem
 int vfs_umount(const char *mountpoint);
 
 struct mount *rootfs;
+
+struct filesystem tmpfs, fat32;
+void fs_init();
 
 #endif

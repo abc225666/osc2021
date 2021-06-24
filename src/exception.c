@@ -201,6 +201,11 @@ void sys_open(struct trapframe *trapframe) {
     
     struct file *file = vfs_open(filename, flags);
 
+    if(file == NULL) {
+        trapframe->x[0] = -1;
+        return;
+    }
+
     // find empty fd and link with file
     struct thread_t *cur_thread = get_current_thread();
     for(int i=0;i<MAX_FD;i++) {

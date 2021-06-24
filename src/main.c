@@ -8,6 +8,7 @@
 #include "thread.h"
 #include "syscall.h"
 #include "demo.h"
+#include "sdhost.h"
 
 extern void el0_start();
 
@@ -60,7 +61,12 @@ void kernel_main() {
     uart_buffer_init();
     irq_init();
     thread_pool_init();
+    fs_init();
     rootfs_init();
+
+    // sd card
+    sd_init();
+    sd_mount();
 
     thread_create(idle, 0, NULL);
     thread_create(demo_vfs, 0, NULL);

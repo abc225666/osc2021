@@ -58,6 +58,7 @@ int tmpfs_register() {
     tmpfs_v_ops->create = tmpfs_create;
     tmpfs_v_ops->mkdir = tmpfs_mkdir;
     tmpfs_v_ops->ls = tmpfs_ls;
+    tmpfs_v_ops->load_dentry = tmpfs_load_dentry;
 
     tmpfs_f_ops = (struct file_operations *)kmalloc(sizeof(struct file_operations));
     tmpfs_f_ops->read = tmpfs_read;
@@ -105,6 +106,7 @@ int tmpfs_lookup(struct vnode *dir_node, struct vnode **target, const char *comp
             return 0;
         }
     }
+    *target = NULL;
     return -1;
 }
 
@@ -141,4 +143,8 @@ int tmpfs_ls(struct vnode *dir_node) {
         }
     }
     return 0;
+}
+
+int tmpfs_load_dentry(struct dentry *dentry, const char *component_name) {
+    return -1;
 }

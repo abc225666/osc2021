@@ -3,29 +3,37 @@
 #include "mystring.h"
 #include "uart.h"
 #include "tmpfs.h"
+#include "fat32.h"
 #include "thread.h"
 #include "typedef.h"
 
 
+void fs_init() {
+    tmpfs.name = (char *)kmalloc(sizeof(char)*6);
+    memcpy(tmpfs.name, "tmpfs", 6);
+    tmpfs.setup_mount = tmpfs_setup_mount;
+    register_filesystem(&tmpfs);
+
+    fat32.name = (char *)kmalloc(sizeof(char)*6);
+    memcpy(fat32.name, "fat32", 6);
+    fat32.setup_mount = fat32_setup_mount;
+    register_filesystem(&fat32);
+}
+
 void rootfs_init() {
-    struct filesystem *tmpfs = (struct filesystem *)kmalloc(sizeof(struct filesystem));
-    tmpfs->name = (char *)kmalloc(sizeof(char)*6);
-    memcpy(tmpfs->name, "tmpfs", 6);
-    // tmpfs setup point
-    tmpfs->setup_mount = tmpfs_setup_mount;
-
-    register_filesystem(tmpfs);
-
     rootfs = (struct mount *)kmalloc(sizeof(struct mount));
     // call mount
-    tmpfs->setup_mount(tmpfs, rootfs);
-    
+    tmpfs.setup_mount(&tmpfs, rootfs);
 }
 
 int register_filesystem(struct filesystem *fs) {
     if(!strcmp(fs->name, "tmpfs")) {
         async_printf("Register tmpfs\n"); 
         return tmpfs_register();
+    }
+    else if(!strcmp(fs->name, "fat32")) {
+        async_printf("Register fat32\n");
+        return fat32_register();
     }
     return 0;
 }
@@ -134,14 +142,13 @@ int vfs_mount(const char *device, const char *mountpoint, const char *filesystem
 
     struct mount *new_mount = (struct mount *)kmalloc(sizeof(struct mount));
     if(!strcmp(filesystem, "tmpfs")) {
-        struct filesystem *tmpfs = (struct filesystem *)kmalloc(sizeof(struct filesystem));
-        tmpfs->name = (char *)kmalloc(sizeof(char)*strlen(device));
-        memcpy(tmpfs->name, device, strlen(device));
-        tmpfs->setup_mount = tmpfs_setup_mount;
-        tmpfs->setup_mount(tmpfs, new_mount);
-        mount_dir->dentry->mountpoint = new_mount;
-        new_mount->root->mount_parent = mount_dir->dentry;
+        tmpfs.setup_mount(&tmpfs, new_mount);
     }
+    else if(!strcmp(filesystem, "fat32")) {
+        fat32.setup_mount(&fat32, new_mount);
+    }
+    mount_dir->dentry->mountpoint = new_mount;
+    new_mount->root->mount_parent = mount_dir->dentry;
     return 0;
 }
 
@@ -205,6 +212,7 @@ void traversal_recursive(struct dentry *node, const char *path, struct vnode **t
     }
     // find child
     struct list_head *p;
+    int found = 0;
     for(p=(&node->childs)->next;p!=&node->childs;p=p->next) {
         struct dentry *entry = list_entry(p, struct dentry, list);
         if(!strcmp(entry->name, target_path)) {
@@ -214,7 +222,14 @@ void traversal_recursive(struct dentry *node, const char *path, struct vnode **t
             else if(entry->type == DIRECTORY) {
                 traversal_recursive(entry, path+i, target_node, target_path);
             }
+            found = 1;
             break;
+        }
+    }
+    if(!found) {
+        int ret = node->vnode->v_ops->load_dentry(node, target_path);
+        if(ret==0) {
+            traversal_recursive(node, path, target_node, target_path);
         }
     }
 }

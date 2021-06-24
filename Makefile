@@ -38,7 +38,7 @@ asm: $(DST_DIR)/kernel8.img
 	qemu-system-aarch64 -M raspi3 -kernel $(DST_DIR)/kernel8.img -display none -d in_asm -initrd img/initramfs.cpio
 
 run: $(DST_DIR)/kernel8.img
-	qemu-system-aarch64 -M raspi3 -kernel $(DST_DIR)/kernel8.img -display none -serial null -serial stdio -initrd img/initramfs.cpio
+	qemu-system-aarch64 -M raspi3 -kernel $(DST_DIR)/kernel8.img -display none -serial null -serial stdio -initrd img/initramfs.cpio -drive if=sd,file=utils/sfn_nctuos.img,format=raw
 
 run_pty_gdb: $(DST_DIR)/kernel8.img
 	qemu-system-aarch64 -M raspi3 -kernel $(DST_DIR)/kernel8.img -display none -serial null -serial pty -S -s
